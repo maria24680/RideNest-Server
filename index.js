@@ -40,6 +40,15 @@ async function run() {
       res.send(result);
     });
 
+    app.get("/car", async (req, res) => {
+  try {
+    const result = await carCollection.find().toArray();
+    res.send(result);
+  } catch (error) {
+    res.status(500).send({ message: "Failed to get cars" });
+  }
+});
+
     await client.db("admin").command({ ping: 1 });
 
     console.log("Connected to MongoDB");
