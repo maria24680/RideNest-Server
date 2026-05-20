@@ -29,11 +29,8 @@ async function run() {
     const db = client.db("ridenest");
 
     const carCollection = db.collection("car");
-    const bookingCollection = db.collection("bookings"); // ✅ ADD THIS
+    const bookingCollection = db.collection("bookings"); 
 
-    // ========================
-    // 🚗 CAR APIs
-    // ========================
 
     // ADD CAR
     app.post("/car", async (req, res) => {
@@ -56,9 +53,7 @@ async function run() {
       }
     });
 
-    // ========================
-    // 📦 BOOKING APIs
-    // ========================
+  
 
     // CREATE BOOKING
     app.post("/bookings", async (req, res) => {
@@ -116,6 +111,56 @@ app.get("/car/:id", async (req, res) => {
   }
 });
 
+// DELETE CAR
+app.delete("/car/:id", async (req, res) => {
+  try {
+    const id = req.params.id;
+
+    const query = {
+      _id: new ObjectId(id),
+    };
+
+    const result = await carCollection.deleteOne(query);
+
+    res.send(result);
+  } catch (error) {
+    res.status(500).send({
+      message: "Failed to delete car",
+    });
+  }
+});
+
+// UPDATE CAR
+app.patch("/car/:id", async (req, res) => {
+  try {
+    const id = req.params.id;
+
+    const updatedData = req.body;
+
+    const filter = {
+      _id: new ObjectId(id),
+    };
+
+    const updatedDoc = {
+      $set: {
+        pricePerDay: updatedData.pricePerDay,
+        location: updatedData.location,
+      },
+    };
+
+    const result = await carCollection.updateOne(
+      filter,
+      updatedDoc
+    );
+
+    res.send(result);
+  } catch (error) {
+    res.status(500).send({
+      message: "Failed to update car",
+    });
+  }
+});
+
     await client.db("admin").command({ ping: 1 });
 
     console.log("Connected to MongoDB 🚀");
@@ -133,3 +178,4 @@ app.get("/", (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
