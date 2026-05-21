@@ -191,6 +191,10 @@ app.patch("/car/:id", async (req, res) => {
     const updatedDoc = {
       $set: {
         pricePerDay: updatedData.pricePerDay,
+        description: updatedData.description,
+        availability: updatedData.availability,
+         image: updatedData.image,
+         type: updatedData.type,
         location: updatedData.location,
       },
     };
