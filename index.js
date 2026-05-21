@@ -53,7 +53,7 @@ const verify=async (req,res,next)=>{
 
 async function run() {
   try {
-    await client.connect();
+    // await client.connect();
 
     const db = client.db("ridenest");
 
@@ -266,9 +266,9 @@ app.patch("/car/:id", verify,async (req, res) => {
   }
 });
 
-    await client.db("admin").command({ ping: 1 });
+    // await client.db("admin").command({ ping: 1 });
 
-    console.log("Connected to MongoDB 🚀");
+    console.log("Connected to MongoDB");
   } catch (error) {
     console.log(error);
   }
