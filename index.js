@@ -14,6 +14,10 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
+app.use(cors({
+  origin: "https://ride-nest-bice.vercel.app/",
+  credentials: true
+}));
 const client = new MongoClient(uri, {
   serverApi: {
     version: ServerApiVersion.v1,

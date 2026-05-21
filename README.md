@@ -18,7 +18,7 @@ Users can explore available cars, add their own cars, update listings, delete ca
 ---
 
 ## 🌐 Live Server URL
-https://your-backend-live-url.com
+https://ride-nest-server.vercel.app/
 
 ---
 
