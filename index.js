@@ -44,31 +44,67 @@ async function run() {
     });
 
     // GET CARS
-    app.get("/car", async (req, res) => {
-      try {
-        const result = await carCollection.find().toArray();
-        res.send(result);
-      } catch (error) {
-        res.status(500).send({ message: "Failed to get cars" });
-      }
+    // GET CARS
+app.get("/car", async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit);
+    const search = req.query.search;
+    const type = req.query.type;
+
+    let query = {};
+
+    // 🔎 SEARCH by name (regex)
+    if (search) {
+      query.name = { $regex: search, $options: "i" };
+    }
+
+    // 🚗 FILTER by type ($in)
+    if (type) {
+      const typesArray = type.split(","); // SUV,Sedan,Luxury
+      query.type = { $in: typesArray };
+    }
+
+    let resultQuery = carCollection.find(query);
+
+    if (limit) {
+      resultQuery = resultQuery.limit(limit);
+    }
+
+    const result = await resultQuery.toArray();
+
+    res.send(result);
+  } catch (error) {
+    res.status(500).send({
+      message: "Failed to get cars",
     });
+  }
+});
 
   
 
     // CREATE BOOKING
     app.post("/bookings", async (req, res) => {
-      try {
-        const booking = req.body;
+  try {
+    const booking = req.body;
 
-        booking.bookingDate = new Date();
+    booking.bookingDate = new Date();
 
-        const result = await bookingCollection.insertOne(booking);
+    const result = await bookingCollection.insertOne(booking);
 
-        res.send(result);
-      } catch (error) {
-        res.status(500).send({ message: "Booking failed" });
-      }
-    });
+    if (result.insertedId) {
+      await carCollection.updateOne(
+        { _id: new ObjectId(booking.carId) },
+        {
+          $inc: { booking_count: 1 },
+        }
+      );
+    }
+
+    res.send(result);
+  } catch (error) {
+    res.status(500).send({ message: "Booking failed" });
+  }
+});
 
     // GET BOOKINGS
     app.get("/bookings", async (req, res) => {
@@ -85,11 +121,22 @@ app.delete("/bookings/:id", async (req, res) => {
   try {
     const id = req.params.id;
 
-    const query = {
+    const booking = await bookingCollection.findOne({
       _id: new ObjectId(id),
-    };
+    });
 
-    const result = await bookingCollection.deleteOne(query);
+    const result = await bookingCollection.deleteOne({
+      _id: new ObjectId(id),
+    });
+
+    if (result.deletedCount > 0 && booking?.carId) {
+      await carCollection.updateOne(
+        { _id: new ObjectId(booking.carId) },
+        {
+          $inc: { booking_count: -1 },
+        }
+      );
+    }
 
     res.send(result);
   } catch (error) {
