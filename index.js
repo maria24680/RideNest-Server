@@ -1,8 +1,8 @@
 const express = require("express");
 const dotenv = require("dotenv");
 const cors = require("cors");
-const { MongoClient, ServerApiVersion } = require("mongodb");
-const { ObjectId } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
+const { createRemoteJWKSet, jwtVerify } = require('jose-cjs');
 
 dotenv.config();
 
@@ -21,6 +21,35 @@ const client = new MongoClient(uri, {
     deprecationErrors: true,
   },
 });
+
+const JWKS = createRemoteJWKSet(
+      new URL(`${process.env.CLIENT_URL}/api/auth/jwks`)
+    )
+
+const verify=async (req,res,next)=>{
+  const header= req?.headers.authorization;
+  if(!header){
+    return res.status(401).json({message: "Unauthorized"})
+  }
+  const token=header.split(" ")[1]
+
+  
+
+  if (!token) {
+    console.log("Invalid scheme or empty token");
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+
+
+  try{
+  const { payload } = await jwtVerify(token, JWKS)
+  next();
+  }
+  catch(error){
+    console.error("JWT Verification failed Error Details:", error.message);
+    return res.status(403).json({message: "Forbidden"})
+  }
+}
 
 async function run() {
   try {
@@ -50,18 +79,30 @@ app.get("/car", async (req, res) => {
     const limit = parseInt(req.query.limit);
     const search = req.query.search;
     const type = req.query.type;
+    const email = req.query.email;
 
     let query = {};
 
-    // 🔎 SEARCH by name (regex)
-    if (search) {
-      query.name = { $regex: search, $options: "i" };
+    // USER FILTER
+    if (email) {
+      query.userEmail = email;
     }
 
-    // 🚗 FILTER by type ($in)
+    // SEARCH
+    if (search) {
+      query.name = {
+        $regex: search,
+        $options: "i",
+      };
+    }
+
+    // FILTER
     if (type) {
-      const typesArray = type.split(","); // SUV,Sedan,Luxury
-      query.type = { $in: typesArray };
+      const typesArray = type.split(",");
+
+      query.type = {
+        $in: typesArray,
+      };
     }
 
     let resultQuery = carCollection.find(query);
@@ -83,7 +124,7 @@ app.get("/car", async (req, res) => {
   
 
     // CREATE BOOKING
-    app.post("/bookings", async (req, res) => {
+    app.post("/bookings", verify,async (req, res) => {
   try {
     const booking = req.body;
 
@@ -107,17 +148,30 @@ app.get("/car", async (req, res) => {
 });
 
     // GET BOOKINGS
-    app.get("/bookings", async (req, res) => {
-      try {
-        const result = await bookingCollection.find().toArray();
-        res.send(result);
-      } catch (error) {
-        res.status(500).send({ message: "Failed to get bookings" });
-      }
+    app.get("/bookings", verify,async (req, res) => {
+  try {
+    const email = req.query.email;
+
+    let query = {};
+
+    if (email) {
+      query.userEmail = email;
+    }
+
+    const result = await bookingCollection
+      .find(query)
+      .toArray();
+
+    res.send(result);
+  } catch (error) {
+    res.status(500).send({
+      message: "Failed to get bookings",
     });
+  }
+});
 
     // DELETE BOOKING
-app.delete("/bookings/:id", async (req, res) => {
+app.delete("/bookings/:id", verify,async (req, res) => {
   try {
     const id = req.params.id;
 
@@ -144,7 +198,7 @@ app.delete("/bookings/:id", async (req, res) => {
   }
 });
 
-app.get("/car/:id", async (req, res) => {
+app.get("/car/:id", verify,async (req, res) => {
   try {
     const id = req.params.id;
 
@@ -159,7 +213,7 @@ app.get("/car/:id", async (req, res) => {
 });
 
 // DELETE CAR
-app.delete("/car/:id", async (req, res) => {
+app.delete("/car/:id", verify,async (req, res) => {
   try {
     const id = req.params.id;
 
@@ -178,7 +232,7 @@ app.delete("/car/:id", async (req, res) => {
 });
 
 // UPDATE CAR
-app.patch("/car/:id", async (req, res) => {
+app.patch("/car/:id", verify,async (req, res) => {
   try {
     const id = req.params.id;
 
