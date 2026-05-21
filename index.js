@@ -15,7 +15,7 @@ app.use(cors());
 app.use(express.json());
 
 app.use(cors({
-  origin: "https://ride-nest-bice.vercel.app/",
+  origin: "https://ride-nest-bice.vercel.app",
   credentials: true
 }));
 const client = new MongoClient(uri, {
